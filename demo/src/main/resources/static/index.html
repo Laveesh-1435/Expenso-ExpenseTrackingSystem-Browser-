@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>💰 Expense Tracker - Web</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .input-group { margin-bottom: 15px; }
+        input { padding: 8px; margin-right: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 8px 15px; border: none; border-radius: 4px; background-color: #007bff; color: white; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        textarea { width: 100%; height: 250px; margin-top: 20px; padding: 10px; font-family: monospace; border: 1px solid #ccc; background-color: #f8f9fa; resize: none;}
+        .button-panel { margin-top: 15px; display: flex; gap: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>💰 Expense Tracker - Delhi (Web Version)</h2>
+    
+    <div class="input-group">
+        <label>Description:</label>
+        <input type="text" id="descField" placeholder="e.g. Lunch">
+        
+        <label>Amount (₹):</label>
+        <input type="number" id="amountField" placeholder="100">
+        
+        <label>Category:</label>
+        <input type="text" id="categoryField" placeholder="Food">
+        
+        <button onclick="addExpense()">➕ Add Expense</button>
+    </div>
+
+    <textarea id="displayArea" readonly placeholder="Output will appear here..."></textarea>
+
+    <div class="button-panel">
+        <button onclick="showToday()">📊 Today</button>
+        <button onclick="showBudget()">💳 Budget</button>
+        <button onclick="showReport()">📈 Report</button>
+        <button onclick="clearFields()">🧹 Clear</button>
+    </div>
+</div>
+
+<script>
+    const display = document.getElementById('displayArea');
+
+    async function addExpense() {
+        const desc = document.getElementById('descField').value;
+        const amount = document.getElementById('amountField').value;
+        const cat = document.getElementById('categoryField').value;
+
+        if(!desc || !amount || amount <= 0) {
+            alert("Please enter valid details!"); return;
+        }
+
+        const response = await fetch('/api/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ description: desc, amount: parseFloat(amount), category: cat })
+        });
+        
+        alert(await response.text());
+        document.getElementById('descField').value = '';
+        document.getElementById('amountField').value = '';
+        document.getElementById('categoryField').value = '';
+        showToday();
+    }
+
+    async function showToday() {
+        const response = await fetch('/api/today');
+        const expenses = await response.json();
+        
+        let text = "📊 TODAY'S EXPENSES\n============================================\n";
+        let total = 0;
+        
+        if(expenses.length === 0) {
+            text += "No expenses today! 🎉\n";
+        } else {
+            expenses.forEach(e => {
+                text += `${e.date} | ₹${e.amount.toFixed(2)} | ${e.category} | ${e.description}\n`;
+                total += e.amount;
+            });
+            text += `\n💰 DAILY TOTAL: ₹${total.toFixed(2)}\n`;
+        }
+        display.value = text;
+    }
+
+    async function showBudget() {
+        const setBudget = confirm("Do you want to set a new monthly budget?");
+        if (setBudget) {
+            const amount = prompt("Enter Monthly Budget (₹):");
+            if(amount && !isNaN(amount)) {
+                await fetch(`/api/budget?amount=${amount}`, { method: 'POST' });
+            }
+        }
+        
+        const response = await fetch('/api/budget/status');
+        display.value = "💳 BUDGET STATUS\n================\n" + await response.text();
+    }
+
+    async function showReport() {
+        const response = await fetch('/api/report');
+        display.value = "📈 MONTHLY REPORT\n==================\n" + await response.text();
+    }
+
+    function clearFields() {
+        display.value = '';
+    }
+</script>
+
+</body>
+</html>
