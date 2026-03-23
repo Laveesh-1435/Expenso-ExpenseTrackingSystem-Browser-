@@ -2,43 +2,252 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>💰 Expense Tracker - Web</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expenso | Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 20px; }
-        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        .input-group { margin-bottom: 15px; }
-        input { padding: 8px; margin-right: 10px; border: 1px solid #ccc; border-radius: 4px; }
-        button { padding: 8px 15px; border: none; border-radius: 4px; background-color: #007bff; color: white; cursor: pointer; }
-        button:hover { background-color: #0056b3; }
-        textarea { width: 100%; height: 250px; margin-top: 20px; padding: 10px; font-family: monospace; border: 1px solid #ccc; background-color: #f8f9fa; resize: none;}
-        .button-panel { margin-top: 15px; display: flex; gap: 10px; }
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --secondary: #f8fafc;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --bg-body: #f1f5f9;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        .navbar {
+            background: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .navbar h2 {
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 2rem;
+        }
+
+        .card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+        }
+
+        h3 {
+            margin-bottom: 1.2rem;
+            font-size: 1.1rem;
+            color: var(--text-dark);
+            border-bottom: 2px solid var(--secondary);
+            padding-bottom: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+            color: var(--text-muted);
+        }
+
+        input {
+            width: 100%;
+            padding: 0.6rem 0.8rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 0.7rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-outline {
+            background-color: white;
+            color: var(--text-dark);
+            border: 1px solid var(--border);
+            margin-bottom: 0.5rem;
+        }
+
+        .btn-outline:hover {
+            background-color: var(--secondary);
+            border-color: #cbd5e1;
+        }
+
+        .action-panel {
+            margin-top: 1.5rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+
+        #displayArea {
+            min-height: 400px;
+        }
+
+        /* Dynamic Content Styling */
+        pre {
+            background: var(--text-dark);
+            color: #4ade80;
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .expense-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .expense-table th, .expense-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .expense-table th {
+            font-weight: 600;
+            color: var(--text-muted);
+            background-color: var(--secondary);
+        }
+
+        .expense-table .amount {
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .badge {
+            background: #e0f2fe;
+            color: #0369a1;
+            padding: 0.2rem 0.6rem;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
 
+<nav class="navbar">
+    <h2>💳 Expenso Dashboard</h2>
+</nav>
+
 <div class="container">
-    <h2>💰 Expense Tracker - Delhi (Web Version)</h2>
-    
-    <div class="input-group">
-        <label>Description:</label>
-        <input type="text" id="descField" placeholder="e.g. Lunch">
-        
-        <label>Amount (₹):</label>
-        <input type="number" id="amountField" placeholder="100">
-        
-        <label>Category:</label>
-        <input type="text" id="categoryField" placeholder="Food">
-        
-        <button onclick="addExpense()">➕ Add Expense</button>
+    <div class="controls-section">
+        <div class="card">
+            <h3>➕ Add New Expense</h3>
+            <div class="form-group">
+                <label>Description</label>
+                <input type="text" id="descField" placeholder="e.g. Lunch at Cafe">
+            </div>
+            
+            <div class="form-group">
+                <label>Amount (₹)</label>
+                <input type="number" id="amountField" placeholder="0.00" min="0" step="0.01">
+            </div>
+            
+            <div class="form-group">
+                <label>Category</label>
+                <input type="text" id="categoryField" placeholder="e.g. Food">
+            </div>
+            
+            <button class="btn-primary" onclick="addExpense()">Add Expense</button>
+        </div>
+
+        <div class="action-panel">
+            <button class="btn-outline" onclick="showToday()">📊 Today</button>
+            <button class="btn-outline" onclick="showBudget()">💳 Budget</button>
+            <button class="btn-outline" onclick="showReport()">📈 Report</button>
+            <button class="btn-outline" onclick="clearFields()">🧹 Clear</button>
+        </div>
     </div>
 
-    <textarea id="displayArea" readonly placeholder="Output will appear here..."></textarea>
-
-    <div class="button-panel">
-        <button onclick="showToday()">📊 Today</button>
-        <button onclick="showBudget()">💳 Budget</button>
-        <button onclick="showReport()">📈 Report</button>
-        <button onclick="clearFields()">🧹 Clear</button>
+    <div class="card" id="displayArea">
+        <div class="empty-state">
+            <p>Welcome to Expenso!</p>
+            <p>Select an option on the left or add an expense to view details.</p>
+        </div>
     </div>
 </div>
 
@@ -60,30 +269,68 @@
             body: JSON.stringify({ description: desc, amount: parseFloat(amount), category: cat })
         });
         
-        alert(await response.text());
+        // Brief success indication
+        const btn = document.querySelector('.btn-primary');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = "✅ Added!";
+        btn.style.backgroundColor = "var(--success)";
+        
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.style.backgroundColor = "var(--primary)";
+        }, 1500);
+
         document.getElementById('descField').value = '';
         document.getElementById('amountField').value = '';
         document.getElementById('categoryField').value = '';
-        showToday();
+        
+        showToday(); // Auto refresh today's view
     }
 
     async function showToday() {
         const response = await fetch('/api/today');
         const expenses = await response.json();
         
-        let text = "📊 TODAY'S EXPENSES\n============================================\n";
-        let total = 0;
+        let html = `<h3>📊 Today's Expenses</h3>`;
         
         if(expenses.length === 0) {
-            text += "No expenses today! 🎉\n";
+            html += `<div class="empty-state">No expenses recorded for today! 🎉</div>`;
         } else {
+            let total = 0;
+            html += `
+            <table class="expense-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Category</th>
+                        <th>Description</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+            
             expenses.forEach(e => {
-                text += `${e.date} | ₹${e.amount.toFixed(2)} | ${e.category} | ${e.description}\n`;
+                html += `
+                    <tr>
+                        <td>${e.date}</td>
+                        <td><span class="badge">${e.category}</span></td>
+                        <td>${e.description}</td>
+                        <td class="amount">₹${e.amount.toFixed(2)}</td>
+                    </tr>`;
                 total += e.amount;
             });
-            text += `\n💰 DAILY TOTAL: ₹${total.toFixed(2)}\n`;
+            
+            html += `
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="3" style="text-align: right; padding-right: 1rem; font-weight: bold;">Daily Total:</td>
+                        <td class="amount" style="font-size: 1.1rem; color: var(--primary);">₹${total.toFixed(2)}</td>
+                    </tr>
+                </tfoot>
+            </table>`;
         }
-        display.value = text;
+        display.innerHTML = html;
     }
 
     async function showBudget() {
@@ -96,16 +343,22 @@
         }
         
         const response = await fetch('/api/budget/status');
-        display.value = "💳 BUDGET STATUS\n================\n" + await response.text();
+        const text = await response.text();
+        display.innerHTML = `<h3>💳 Budget Status</h3><pre>${text}</pre>`;
     }
 
     async function showReport() {
         const response = await fetch('/api/report');
-        display.value = "📈 MONTHLY REPORT\n==================\n" + await response.text();
+        const text = await response.text();
+        display.innerHTML = `<h3>📈 Monthly Report</h3><pre>${text}</pre>`;
     }
 
     function clearFields() {
-        display.value = '';
+        display.innerHTML = `
+        <div class="empty-state">
+            <p>Welcome to Expenso!</p>
+            <p>Select an option on the left or add an expense to view details.</p>
+        </div>`;
     }
 </script>
 

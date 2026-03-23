@@ -11,3 +11,8 @@ expense-tracker-web/
             └── static/
                 ├── index.html                  (New Frontend UI)
                 └── style.css
+
+
+HOW TO RUN:-
+Navigate to the root folder i.e. EXPENSO(BROWSER) and run the following command on the terminal
+".\mvnw spring-boot:run
