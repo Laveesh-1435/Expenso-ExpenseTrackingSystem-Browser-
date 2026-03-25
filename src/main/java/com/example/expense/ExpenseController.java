@@ -1,5 +1,6 @@
 package com.example.expense;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 
@@ -24,47 +25,47 @@ public class ExpenseController {
     }
 
     @PostMapping("/add")
-    public String addExpense(@RequestBody Expense expense) {
-        service.addExpense(expense);
+    public String addExpense(@RequestBody Expense expense, Principal principal) {
+        // Pass the username to the service
+        service.addExpense(expense, principal.getName());
         return "✅ Expense Added!";
     }
 
-    // New: Endpoint to handle edits
     @PutMapping("/edit/{id}")
-    public String editExpense(@PathVariable String id, @RequestBody Expense expense) {
-        service.updateExpense(id, expense);
+    public String editExpense(@PathVariable String id, @RequestBody Expense expense, Principal principal) {
+        service.updateExpense(id, expense, principal.getName());
         return "✅ Expense Updated!";
     }
 
     @GetMapping("/today")
-    public List<Expense> getToday() {
-        return service.getTodayExpenses();
+    public List<Expense> getToday(Principal principal) {
+        return service.getTodayExpenses(principal.getName());
     }
 
     @PostMapping("/budget")
-    public String setBudget(@RequestParam double amount) {
-        service.setMonthlyBudget(amount);
+    public String setBudget(@RequestParam double amount, Principal principal) { // Added Principal
+        service.setMonthlyBudget(amount, principal.getName());
         return "Budget updated";
     }
 
     @GetMapping("/budget/status")
-    public String getBudgetStatus() {
-        return service.getBudgetStatus();
+    public String getBudgetStatus(Principal principal) { // Added Principal
+        return service.getBudgetStatus(principal.getName());
     }
 
     @GetMapping("/report")
-    public String getReport() {
-        return service.getMonthlyReport();
+    public String getReport(Principal principal) { // Added Principal
+        return service.getMonthlyReport(principal.getName());
     }
 
     @GetMapping("/report/data")
-    public Map<String, Double> getReportData() {
-        return service.getMonthlyReportData();
+    public Map<String, Double> getReportData(Principal principal) { // Added Principal
+        return service.getMonthlyReportData(principal.getName());
     }
 
     @GetMapping(value = "/export/csv", produces = "text/csv")
-    public ResponseEntity<String> exportCsv() {
-        String csv = service.exportToCsv();
+    public ResponseEntity<String> exportCsv(Principal principal) { // Added Principal
+        String csv = service.exportToCsv(principal.getName());
         return ResponseEntity.ok()
                 .header("Content-Disposition", "attachment; filename=\"expenses.csv\"")
                 .body(csv);

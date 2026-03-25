@@ -2,7 +2,6 @@ package com.example.expense;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -11,117 +10,125 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class ExpenseService {
-    private final List<Expense> expenses = new ArrayList<>();
-    private double monthlyBudget = 0;
+    private final ExpenseRepository expenseRepository;
+    private final UserRepository userRepository;
+    @SuppressWarnings("unused")
+    private final double monthlyBudget = 0;
 
-    private double convertToINR(double amount, String currency) {
-        if (currency == null)
-            return amount;
-        return switch (currency.toUpperCase()) {
-            case "USD" -> amount * 83.0;
-            case "EUR" -> amount * 90.0;
-            case "GBP" -> amount * 105.0;
-            default -> amount;
-        }; // Assuming INR
+    // Inject both repositories
+    public ExpenseService(ExpenseRepository expenseRepository, UserRepository userRepository) {
+        this.expenseRepository = expenseRepository;
+        this.userRepository = userRepository;
     }
 
-    public void addExpense(Expense expense) {
+    // Helper method to link the authenticated session user to the database user
+    // Replace the old getOrCreateDbUser method with this simpler one:
+    private User getDbUser(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    // Remember to update addExpense, updateExpense, and getTodayExpenses
+    // to call getDbUser(username) instead of getOrCreateDbUser.
+
+    public void addExpense(Expense expense, String username) {
+        User user = getDbUser(username);
+        expense.setUser(user);
+
         if (expense.getDate() == null) {
             expense.setDate(LocalDate.now());
         }
         if (expense.getCurrency() == null) {
             expense.setCurrency("INR");
         }
-        expenses.add(expense);
+        expenseRepository.save(expense);
     }
 
-    // New: Update existing expense logic
-    public void updateExpense(String id, Expense updatedExpense) {
-        for (Expense e : expenses) {
-            if (e.getId().equals(id)) {
-                e.setDescription(updatedExpense.getDescription());
-                e.setAmount(updatedExpense.getAmount());
-                e.setCategory(updatedExpense.getCategory());
-                e.setCurrency(updatedExpense.getCurrency());
-                break;
-            }
+    public void updateExpense(String id, Expense updatedExpense, String username) {
+        User user = getDbUser(username);
+        Expense existing = expenseRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Expense not found"));
+
+        // Ensure the user modifying it owns it
+        if (existing.getUser().getId().equals(user.getId())) {
+            existing.setDescription(updatedExpense.getDescription());
+            existing.setAmount(updatedExpense.getAmount());
+            existing.setCategory(updatedExpense.getCategory());
+            existing.setCurrency(updatedExpense.getCurrency());
+            expenseRepository.save(existing);
         }
     }
 
-    public List<Expense> getTodayExpenses() {
-        LocalDate today = LocalDate.now();
-        return expenses.stream()
-                .filter(e -> e.getDate().equals(today))
-                .collect(Collectors.toList());
+    public List<Expense> getTodayExpenses(String username) {
+        User user = getDbUser(username);
+        return expenseRepository.findByUserAndDate(user, LocalDate.now());
     }
 
-    public void setMonthlyBudget(double budget) {
-        this.monthlyBudget = budget;
+    // ... (Keep getDbUser, addExpense, updateExpense, and getTodayExpenses as they
+    // are) ...
+
+    public void setMonthlyBudget(double amount, String username) {
+        User user = getDbUser(username);
+        user.setMonthlyBudget(amount);
+        userRepository.save(user); // Save the new budget to the database
     }
 
-    public String getBudgetStatus() {
-        if (monthlyBudget == 0)
-            return "❌ No budget set! Use 'Set Budget'.";
+    public String getBudgetStatus(String username) {
+        User user = getDbUser(username);
+        YearMonth currentMonth = YearMonth.now();
 
-        double monthlySpent = expenses.stream()
-                .filter(e -> YearMonth.from(e.getDate()).equals(YearMonth.now()))
-                .mapToDouble(e -> convertToINR(e.getAmount(), e.getCurrency()))
+        // Calculate total spent this month
+        double totalSpentThisMonth = expenseRepository.findByUser(user).stream()
+                .filter(e -> YearMonth.from(e.getDate()).equals(currentMonth))
+                .mapToDouble(Expense::getAmount)
                 .sum();
 
-        double remaining = monthlyBudget - monthlySpent;
-        double percentage = (monthlySpent / monthlyBudget) * 100;
+        double budget = user.getMonthlyBudget();
+        double remaining = budget - totalSpentThisMonth;
 
-        StringBuilder status = new StringBuilder();
-        status.append(String.format("Monthly Budget: ₹%.2f\n", monthlyBudget));
-        status.append(String.format("Spent (Converted to INR): ₹%.2f (%.1f%%)\n", monthlySpent, percentage));
-        status.append(String.format("Remaining: ₹%.2f\n\n", remaining));
+        // Format the output for the UI
+        String status = remaining < 0 ? "⚠️ OVER BUDGET!" : "✅ On Track";
 
-        if (percentage > 90)
-            status.append("⚠️ CRITICAL - Budget almost gone!\n");
-        else if (percentage > 75)
-            status.append("🔶 HIGH usage - Be careful!\n");
-        else
-            status.append("✅ Good budget control!\n");
-
-        return status.toString();
+        return String.format("""
+                Monthly Budget Limit: \u20b9%.2f
+                Total Spent This Month: \u20b9%.2f
+                Remaining Balance: \u20b9%.2f
+                Status: %s""",
+                budget, totalSpentThisMonth, remaining, status);
     }
 
-    public Map<String, Double> getMonthlyReportData() {
+    public Map<String, Double> getMonthlyReportData(String username) {
+        User user = getDbUser(username);
         YearMonth currentMonth = YearMonth.now();
-        return expenses.stream()
+
+        // Group expenses by category and sum the amounts for the Pie Chart
+        return expenseRepository.findByUser(user).stream()
                 .filter(e -> YearMonth.from(e.getDate()).equals(currentMonth))
                 .collect(Collectors.groupingBy(
                         Expense::getCategory,
-                        Collectors.summingDouble(e -> convertToINR(e.getAmount(), e.getCurrency()))));
+                        Collectors.summingDouble(Expense::getAmount)));
     }
 
-    public String getMonthlyReport() {
-        Map<String, Double> categoryTotals = getMonthlyReportData();
-        if (categoryTotals.isEmpty())
-            return "No expenses for this month yet.";
+    public String getMonthlyReport(String username) {
+        Map<String, Double> data = getMonthlyReportData(username);
+        if (data.isEmpty()) {
+            return "No expenses recorded this month yet.";
+        }
 
-        double totalSpent = categoryTotals.values().stream().mapToDouble(Double::doubleValue).sum();
-
-        StringBuilder report = new StringBuilder();
-        report.append(String.format("Total Spent (in INR): ₹%.2f\n\n🏷️ Category Breakdown:\n", totalSpent));
-
-        categoryTotals.entrySet().stream()
-                .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
-                .forEach(entry -> report.append(String.format("%s: ₹%.2f (%.1f%%)\n",
-                        entry.getKey(), entry.getValue(), (entry.getValue() / totalSpent) * 100)));
-
+        StringBuilder report = new StringBuilder("Category Breakdown for Current Month:\n\n");
+        data.forEach((category, amount) -> report.append(String.format("- %s: ₹%.2f\n", category, amount)));
         return report.toString();
     }
 
-    public String exportToCsv() {
-        StringBuilder csv = new StringBuilder("Date,Category,Description,Amount,Currency,ConvertedAmount(INR)\n");
+    public String exportToCsv(String username) {
+        User user = getDbUser(username);
+        List<Expense> expenses = expenseRepository.findByUser(user);
+
+        StringBuilder csv = new StringBuilder("ID,Date,Description,Category,Currency,Amount\n");
         for (Expense e : expenses) {
-            csv.append(e.getDate()).append(",")
-                    .append(e.getCategory().replace(",", " ")).append(",")
-                    .append(e.getDescription().replace(",", " ")).append(",")
-                    .append(e.getAmount()).append(",")
-                    .append(e.getCurrency()).append(",")
-                    .append(convertToINR(e.getAmount(), e.getCurrency())).append("\n");
+            csv.append(String.format("%s,%s,%s,%s,%s,%.2f\n",
+                    e.getId(), e.getDate(), e.getDescription().replace(",", " "),
+                    e.getCategory(), e.getCurrency(), e.getAmount()));
         }
         return csv.toString();
     }
