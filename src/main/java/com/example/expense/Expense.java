@@ -1,24 +1,22 @@
 package com.example.expense;
 
-import jakarta.persistence.*;
 import java.time.LocalDate;
 
-@Entity
-@Table(name = "expenses")
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.DBRef;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+@Document(collection = "expenses")
 public class Expense {
-
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
-
     private String description;
     private double amount;
     private String category;
     private String currency;
     private LocalDate date;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @DBRef // This replaces @ManyToOne and @JoinColumn
     private User user;
 
     public Expense() {
